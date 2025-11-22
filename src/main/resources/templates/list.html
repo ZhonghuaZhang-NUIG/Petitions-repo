@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Petitions</title>
+</head>
+<body>
+<h1>All Petitions</h1>
+<p><a th:href="@{/petitions/create}">Create a petition</a> | <a th:href="@{/petitions/search}">Search petitions</a></p>
+<ul>
+    <li th:each="p : ${petitions}">
+        <a th:href="@{|/petitions/${p.id}|}" th:text="${p.title}"></a>
+        <span> — by <em th:text="${p.author}"></em></span>
+        <span> (<span th:text="${p.signatures.size()}"></span> signs)</span>
+    </li>
+</ul>
+</body>
+</html>
