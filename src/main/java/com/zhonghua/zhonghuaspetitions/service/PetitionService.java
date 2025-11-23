@@ -43,4 +43,19 @@ public class PetitionService {
         return p;
     }
 
+    public Optional<Petition> findById(Long id) {
+        return petitions.stream().filter(p -> p.getId().equals(id)).findFirst();
+    }
+
+    public List<Petition> searchByTitle(String q) {
+        String lower = q == null ? "" : q.toLowerCase();
+        List<Petition> res = new ArrayList<>();
+        for (Petition p : petitions) {
+            if (p.getTitle() != null && p.getTitle().toLowerCase().contains(lower)) {
+                res.add(p);
+            }
+        }
+        return res;
+    }
+
 }

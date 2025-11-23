@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Results</title>
+</head>
+<body>
+<h1>Search Results</h1>
+<p th:if="${q}">Results for: <strong th:text="${q}"></strong></p>
+<p th:if="${results.size()} == 0">No results found.</p>
+<ul>
+    <li th:each="p : ${results}">
+        <a th:href="@{|/petitions/${p.id}|}" th:text="${p.title}"></a>
+        <span> — by <em th:text="${p.author}"></em></span>
+    </li>
+</ul>
+<p><a th:href="@{/petitions/search}">Back to search</a> | <a th:href="@{/petitions}">Back to list</a></p>
+</body>
+</html>
