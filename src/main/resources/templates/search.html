@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Petitions</title>
+</head>
+<body>
+<h1>Search Petitions</h1>
+<form th:action="@{/petitions/search/results}" method="get">
+    <p>Query: <input type="text" name="q"/></p>
+    <p><button type="submit">Search</button></p>
+    <p><a th:href="@{/petitions}">Back to list</a></p>
+</form>
+</body>
+</html>
