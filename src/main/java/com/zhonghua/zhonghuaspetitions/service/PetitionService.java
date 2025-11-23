@@ -37,4 +37,10 @@ public class PetitionService {
         return petitions;
     }
 
+    public Petition create(String title, String description, String author) {
+        Petition p = new Petition(idSeq.getAndIncrement(), title, description, author);
+        petitions.add(p);
+        return p;
+    }
+
 }
