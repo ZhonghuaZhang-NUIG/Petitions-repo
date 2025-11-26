@@ -64,4 +64,12 @@ public class PetitionController {
         return "detail";
     }
 
+    @PostMapping("/petitions/{id}/sign")
+    public String sign(@PathVariable Long id,
+            @RequestParam String name,
+            @RequestParam String email) {
+        petitionService.sign(id, name, email);
+        return "redirect:/petitions/" + id;
+    }
+
 }
