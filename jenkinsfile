@@ -1,5 +1,5 @@
 pipeline {
-   
+    agent { label 'built-in' } 
 
     parameters {
         string(name: 'FIRST_NAME', defaultValue: 'zhonghuazhangpetition', description: 'First name for war filename')
