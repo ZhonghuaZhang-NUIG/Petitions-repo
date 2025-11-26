@@ -52,6 +52,7 @@ pipeline {
             }
         }
 
+
 stage('Deploy (manual approval)') {
     steps {
         script {
@@ -61,16 +62,23 @@ stage('Deploy (manual approval)') {
             sh '''
             echo "Deploying to Tomcat..."
 
-            # stop Tomcat using the shutdown script (no systemctl)
+            REMOTE_TMP="/tmp/${WAR_NAME}"
+
+            # stop Tomcat via shutdown script
             ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/shutdown.sh || true"
 
-            # remove previous WAR and exploded webapp
-            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "rm -f ${TOMCAT_WEBAPPS}/${WAR_NAME} ${TOMCAT_WEBAPPS}/ROOT.war || true; rm -rf ${TOMCAT_WEBAPPS}/ROOT || true"
+            # upload to remote /tmp (no sudo needed)
+            scp -o StrictHostKeyChecking=no -i $EC2_KEY "${WAR_NAME}" ${TOMCAT_HOST}:${REMOTE_TMP}
 
-            # copy new WAR
-            scp -o StrictHostKeyChecking=no -i $EC2_KEY "${WAR_NAME}" ${TOMCAT_HOST}:${TOMCAT_WEBAPPS}/
+            # move into webapps with sudo, clean old app first
+            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "\
+              sudo mkdir -p ${TOMCAT_WEBAPPS} && \
+              sudo rm -f ${TOMCAT_WEBAPPS}/${WAR_NAME} ${TOMCAT_WEBAPPS}/ROOT.war || true && \
+              sudo rm -rf ${TOMCAT_WEBAPPS}/ROOT || true && \
+              sudo mv ${REMOTE_TMP} ${TOMCAT_WEBAPPS}/ && \
+              sudo chown root:root ${TOMCAT_WEBAPPS}/${WAR_NAME} || true"
 
-            # start Tomcat using the startup script (no systemctl)
+            # start Tomcat via startup script
             ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/startup.sh || true"
 
             echo "Deployment complete."
@@ -78,6 +86,7 @@ stage('Deploy (manual approval)') {
         }
     }
 }
+
     }
 
     post {
