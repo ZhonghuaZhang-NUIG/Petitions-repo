@@ -60,9 +60,19 @@ stage('Deploy (manual approval)') {
         withCredentials([sshUserPrivateKey(credentialsId: 'ec2-key', keyFileVariable: 'EC2_KEY', usernameVariable: 'SSH_USER')]) {
             sh '''
             echo "Deploying to Tomcat..."
-            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl stop tomcat"
+
+            # stop Tomcat using the shutdown script (no systemctl)
+            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/shutdown.sh || true"
+
+            # remove previous WAR and exploded webapp
+            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "rm -f ${TOMCAT_WEBAPPS}/${WAR_NAME} ${TOMCAT_WEBAPPS}/ROOT.war || true; rm -rf ${TOMCAT_WEBAPPS}/ROOT || true"
+
+            # copy new WAR
             scp -o StrictHostKeyChecking=no -i $EC2_KEY "${WAR_NAME}" ${TOMCAT_HOST}:${TOMCAT_WEBAPPS}/
-            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl start tomcat"
+
+            # start Tomcat using the startup script (no systemctl)
+            ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/startup.sh || true"
+
             echo "Deployment complete."
             '''
         }
