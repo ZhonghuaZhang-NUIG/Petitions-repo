@@ -58,4 +58,8 @@ public class PetitionService {
         return res;
     }
 
+    public void sign(Long petitionId, String name, String email) {
+        findById(petitionId).ifPresent(p -> p.addSignature(new Signature(name, email)));
+    }
+
 }
