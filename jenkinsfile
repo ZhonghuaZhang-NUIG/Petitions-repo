@@ -52,12 +52,12 @@ pipeline {
             }
         }
 
-      stage('Deploy (manual approval)') {
+stage('Deploy (manual approval)') {
     steps {
         script {
             input message: "Deploy ${env.WAR_NAME}?", ok: 'Deploy'
         }
-        withCredentials([file(credentialsId: 'ec2-key', variable: 'EC2_KEY')]) {
+        withCredentials([sshUserPrivateKey(credentialsId: 'ec2-key', keyFileVariable: 'EC2_KEY', usernameVariable: 'SSH_USER')]) {
             sh '''
             echo "Deploying to Tomcat..."
             ssh -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl stop tomcat"
