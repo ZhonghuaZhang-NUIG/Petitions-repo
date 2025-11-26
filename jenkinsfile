@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'FIRST_NAME', defaultValue: 'zhonghuazhangpetition', description: 'First name for war filename')
+        string(name: 'TOMCAT_HOST', defaultValue: 'ec2-user@ip-172-31-16-56', description: 'Tomcat server SSH (e.g. ec2-user@54.123.456.789)')
+        string(name: 'TOMCAT_WEBAPPS', defaultValue: '/opt/tomcat/webapps', description: 'Tomcat webapps directory')
+    }
+
+    environment {
+        WAR_NAME = "${params.FIRST_NAME}spetitions.war"
+    }
+
+    triggers {
+        // Automatically trigger on each GitHub push
+        githubPush()
+    }
+
+    stages {
+        stage('Get code from Github') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn -B -DskipTests clean package'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'mvn -B test'
+            }
+        }
+
+        stage('Package and archive') {
+            steps {
+                sh '''
+                if ls target/*.war 1> /dev/null 2>&1; then
+                  cp target/*.war "${WAR_NAME}"
+                elif ls target/*.jar 1> /dev/null 2>&1; then
+                  cp target/*.jar "${WAR_NAME}"
+                else
+                  echo "No artifact found in target/"
+                  exit 1
+                fi
+                ls -l "${WAR_NAME}"
+                '''
+                archiveArtifacts artifacts: "${WAR_NAME}", fingerprint: true
+            }
+        }
+
+      stage('Deploy (manual approval)') {
+    steps {
+        script {
+            input message: "Deploy ${env.WAR_NAME}?", ok: 'Deploy'
+        }
+        withCredentials([file(credentialsId: 'ec2-key', variable: 'EC2_KEY')]) {
+            sh '''
+            echo "Deploying to Tomcat..."
+            ssh -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl stop tomcat"
+            scp -i $EC2_KEY "${WAR_NAME}" ${TOMCAT_HOST}:${TOMCAT_WEBAPPS}/
+            ssh -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl start tomcat"
+            echo "Deployment complete."
+            '''
+        }
+    }
+}
+    }
+
+    post {
+        success {
+            echo "✓ Pipeline completed successfully."
+        }
+        failure {
+            echo "✗ Pipeline failed."
+        }
+    }
+}
