@@ -36,21 +36,21 @@ pipeline {
         }
 
         stage('Package and archive') {
-            steps {
-                sh '''
-                if ls target/*.war 1> /dev/null 2>&1; then
-                  cp target/*.war "${WAR_NAME}"
-                elif ls target/*.jar 1> /dev/null 2>&1; then
-                  cp target/*.jar "${WAR_NAME}"
-                else
-                  echo "No artifact found in target/"
-                  exit 1
-                fi
-                ls -l "${WAR_NAME}"
-                '''
-                archiveArtifacts artifacts: "${WAR_NAME}", fingerprint: true
-            }
-        }
+    steps {
+        sh '''
+        if ls target/*.war 1> /dev/null 2>&1; then
+          mv $(ls target/*.war | head -1) "${WAR_NAME}"
+        elif ls target/*.jar 1> /dev/null 2>&1; then
+          mv $(ls target/*.jar | head -1) "${WAR_NAME}"
+        else
+          echo "No artifact found in target/"
+          exit 1
+        fi
+        ls -l "${WAR_NAME}"
+        '''
+        archiveArtifacts artifacts: "${WAR_NAME}", fingerprint: true
+    }
+}
 
 
 stage('Deploy (manual approval)') {
@@ -78,6 +78,7 @@ stage('Deploy (manual approval)') {
     post {
         success {
             echo "✓ Pipeline completed successfully."
+            sh 'rm -f "${WAR_NAME}" || true; rm -rf target || true'
         }
         failure {
             echo "✗ Pipeline failed."
