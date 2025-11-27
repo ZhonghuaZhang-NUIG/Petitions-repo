@@ -4,7 +4,7 @@ pipeline {
     parameters {
         string(name: 'FIRST_NAME', defaultValue: 'zhonghuazhangpetition', description: 'First name for war filename')
         string(name: 'TOMCAT_HOST', defaultValue: 'ec2-user@ec2-54-74-153-47.eu-west-1.compute.amazonaws.com', description: 'Tomcat server SSH (e.g. ec2-user@54.123.456.789)')
-        string(name: 'TOMCAT_WEBAPPS', defaultValue: '/opt/tomcat/webapps', description: 'Tomcat webapps directory')
+        string(name: 'TOMCAT_WEBAPPS', defaultValue: '/opt/tomcat/apache-tomcat-9.0.70/webapps', description: 'Tomcat webapps directory')
     }
 
     environment {
@@ -55,32 +55,18 @@ pipeline {
 
 stage('Deploy (manual approval)') {
     steps {
-        script {
-            input message: "Deploy ${env.WAR_NAME}?", ok: 'Deploy'
-        }
+        script { input message: "Deploy ${env.WAR_NAME}?", ok: 'Deploy' }
         withCredentials([sshUserPrivateKey(credentialsId: 'ec2-key', keyFileVariable: 'EC2_KEY', usernameVariable: 'SSH_USER')]) {
             sh '''
             echo "Deploying to Tomcat..."
-
             REMOTE_TMP="/tmp/${WAR_NAME}"
-
-            # stop Tomcat via shutdown script
             ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/shutdown.sh || true"
-
-            # upload to remote /tmp (no sudo needed)
             scp -o StrictHostKeyChecking=no -i $EC2_KEY "${WAR_NAME}" ${TOMCAT_HOST}:${REMOTE_TMP}
-
-            # move into webapps with sudo, clean old app first
             ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "\
-              sudo mkdir -p ${TOMCAT_WEBAPPS} && \
               sudo rm -f ${TOMCAT_WEBAPPS}/${WAR_NAME} ${TOMCAT_WEBAPPS}/ROOT.war || true && \
               sudo rm -rf ${TOMCAT_WEBAPPS}/ROOT || true && \
-              sudo mv ${REMOTE_TMP} ${TOMCAT_WEBAPPS}/ && \
-              sudo chown root:root ${TOMCAT_WEBAPPS}/${WAR_NAME} || true"
-
-            # start Tomcat via startup script
+              sudo mv ${REMOTE_TMP} ${TOMCAT_WEBAPPS}/"
             ssh -o StrictHostKeyChecking=no -i $EC2_KEY ${TOMCAT_HOST} "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/startup.sh || true"
-
             echo "Deployment complete."
             '''
         }
