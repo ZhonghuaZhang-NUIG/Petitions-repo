@@ -8,8 +8,6 @@ pipeline {
     }
 
     environment {
-        // If FIRST_NAME = zhonghuazhangpetition result will be zhonghuazhangpetition.war
-        WAR_NAME = "${params.FIRST_NAME}.war"
     }
 
     triggers {
