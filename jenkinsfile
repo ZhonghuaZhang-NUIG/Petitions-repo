@@ -8,6 +8,7 @@ pipeline {
     }
 
     environment {
+        WAR_NAME = "${params.FIRST_NAME}.war"
     }
 
     triggers {
