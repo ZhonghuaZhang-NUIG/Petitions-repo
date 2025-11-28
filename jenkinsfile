@@ -12,7 +12,7 @@ pipeline {
     }
 
     triggers {
-        // Automatically trigger on each GitHub push
+        // Automatically trigger job on each GitHub push
         githubPush()
     }
 
