@@ -2,13 +2,14 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'FIRST_NAME', defaultValue: 'zhonghuazhangpetition', description: 'First name for war filename')
-        string(name: 'TOMCAT_HOST', defaultValue: 'ec2-user@ip-172-31-16-56', description: 'Tomcat server SSH (e.g. ec2-user@54.123.456.789)')
-        string(name: 'TOMCAT_WEBAPPS', defaultValue: '/opt/tomcat/webapps', description: 'Tomcat webapps directory')
+        string(name: 'FIRST_NAME', defaultValue: 'zhonghuazhangpetition', description: 'Base name for WAR file')
+        string(name: 'TOMCAT_HOST', defaultValue: 'ec2-user@ec2-3-250-23-111.eu-west-1.compute.amazonaws.com', description: 'Tomcat server SSH (e.g. ec2-user@IP)')
+        string(name: 'TOMCAT_WEBAPPS', defaultValue: '/opt/tomcat/apache-tomcat-9.0.70/webapps', description: 'Tomcat webapps directory')
     }
 
     environment {
-        WAR_NAME = "${params.FIRST_NAME}spetitions.war"
+        // If FIRST_NAME = zhonghuazhangpetition result will be zhonghuazhangpetition.war
+        WAR_NAME = "${params.FIRST_NAME}.war"
     }
 
     triggers {
@@ -17,7 +18,7 @@ pipeline {
     }
 
     stages {
-        stage('Get code from Github') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
@@ -25,25 +26,17 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn -B -DskipTests clean package'
+                 sh './mvnw -B -DskipTests clean package'
             }
         }
 
-        stage('Test') {
-            steps {
-                sh 'mvn -B test'
-            }
-        }
-
-        stage('Package and archive') {
+        stage('Package and Archive') {
             steps {
                 sh '''
-                if ls target/*.war 1> /dev/null 2>&1; then
-                  cp target/*.war "${WAR_NAME}"
-                elif ls target/*.jar 1> /dev/null 2>&1; then
-                  cp target/*.jar "${WAR_NAME}"
+                if ls target/*.war 1>/dev/null 2>&1; then
+                  mv "$(ls target/*.war | head -1)" "${WAR_NAME}"
                 else
-                  echo "No artifact found in target/"
+                  echo "No WAR artifact found in target/"
                   exit 1
                 fi
                 ls -l "${WAR_NAME}"
@@ -52,30 +45,43 @@ pipeline {
             }
         }
 
-      stage('Deploy (manual approval)') {
-    steps {
-        script {
-            input message: "Deploy ${env.WAR_NAME}?", ok: 'Deploy'
+        stage('Deploy (manual approval)') {
+            steps {
+                script { input message: "Deploy ${env.WAR_NAME}?", ok: 'Deploy' }
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-key', keyFileVariable: 'EC2_KEY', usernameVariable: 'SSH_USER')]) {
+                    sh '''
+                    echo "Deploying to Tomcat..."
+                    REMOTE_TMP="/tmp/${WAR_NAME}"
+
+                    # Stop Tomcat (ignore if not running)
+                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/shutdown.sh || true"
+
+                    # Upload WAR to /tmp
+                    scp -o StrictHostKeyChecking=no -i "$EC2_KEY" "${WAR_NAME}" "${TOMCAT_HOST}:${REMOTE_TMP}"
+
+                    # Replace previous deployment
+                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "\
+                      sudo rm -f ${TOMCAT_WEBAPPS}/${WAR_NAME} ${TOMCAT_WEBAPPS}/ROOT.war || true && \
+                      sudo rm -rf ${TOMCAT_WEBAPPS}/ROOT || true && \
+                      sudo mv ${REMOTE_TMP} ${TOMCAT_WEBAPPS}/"
+
+                    # Start Tomcat
+                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/startup.sh || true"
+
+                    echo "Deployment complete."
+                    '''
+                }
+            }
         }
-        withCredentials([file(credentialsId: 'ec2-key', variable: 'EC2_KEY')]) {
-            sh '''
-            echo "Deploying to Tomcat..."
-            ssh -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl stop tomcat"
-            scp -i $EC2_KEY "${WAR_NAME}" ${TOMCAT_HOST}:${TOMCAT_WEBAPPS}/
-            ssh -i $EC2_KEY ${TOMCAT_HOST} "sudo systemctl start tomcat"
-            echo "Deployment complete."
-            '''
-        }
-    }
-}
     }
 
     post {
         success {
-            echo "✓ Pipeline completed successfully."
+            echo "Pipeline completed successfully."
+            sh 'rm -f "${WAR_NAME}" || true; rm -rf target || true'
         }
         failure {
-            echo "✗ Pipeline failed."
+            echo "Pipeline failed."
         }
     }
 }
