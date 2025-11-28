@@ -22,7 +22,12 @@ pipeline {
                 checkout scm
             }
         }
-
+        stage('Unit Tests') {
+            steps {
+                sh './mvnw -B test'
+                junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+            }
+        }
         stage('Build') {
             steps {
                  sh './mvnw -B -DskipTests clean package'
