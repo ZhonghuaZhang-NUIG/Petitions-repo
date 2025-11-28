@@ -3,7 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'FIRST_NAME', defaultValue: 'zhonghuazhangpetition', description: 'Base name for WAR file')
-        string(name: 'TOMCAT_HOST', defaultValue: 'ec2-3-250-23-111.eu-west-1.compute.amazonaws.com', description: 'Tomcat server SSH (e.g. ec2-user@IP)')
+        string(name: 'TOMCAT_HOST', defaultValue: 'ec2-user@ec2-3-250-23-111.eu-west-1.compute.amazonaws.com', description: 'Tomcat server SSH (e.g. ec2-user@IP)')
         string(name: 'TOMCAT_WEBAPPS', defaultValue: '/opt/tomcat/apache-tomcat-9.0.70/webapps', description: 'Tomcat webapps directory')
     }
 
