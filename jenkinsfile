@@ -58,7 +58,7 @@ pipeline {
                     REMOTE_TMP="/tmp/${WAR_NAME}"
 
                     # Stop Tomcat (ignore if not running)
-                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/shutdown.sh || true"
+                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "sudo /opt/tomcat/apache-tomcat-10.1.49/bin/shutdown.sh || true"
 
                     # Upload WAR to /tmp
                     scp -o StrictHostKeyChecking=no -i "$EC2_KEY" "${WAR_NAME}" "${TOMCAT_HOST}:${REMOTE_TMP}"
@@ -70,7 +70,7 @@ pipeline {
                       sudo mv ${REMOTE_TMP} ${TOMCAT_WEBAPPS}/"
 
                     # Start Tomcat
-                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "sudo /opt/tomcat/apache-tomcat-9.0.70/bin/startup.sh || true"
+                    ssh -o StrictHostKeyChecking=no -i "$EC2_KEY" "${TOMCAT_HOST}" "sudo /opt/tomcat/apache-tomcat-10.1.49/bin/startup.sh || true"
 
                     echo "Deployment complete."
                     '''
