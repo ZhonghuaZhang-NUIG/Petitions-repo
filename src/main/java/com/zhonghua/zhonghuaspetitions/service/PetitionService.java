@@ -15,7 +15,7 @@ public class PetitionService {
     private final AtomicLong idSeq = new AtomicLong(1);
 
     public PetitionService() {
-        // sample data to start
+        // sample data
         Petition p1 = new Petition(idSeq.getAndIncrement(), "Save the Community Park",
                 "We want more funding to maintain the community park and playground.", "Alice");
         p1.addSignature(new Signature("Bob", "bob@example.com"));
